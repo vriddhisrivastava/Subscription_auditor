@@ -1,0 +1,8 @@
+{
+  "name": "Subscription Auditor",
+  "description": "Track, analyze, audit, and optimize recurring subscriptions, uncover overlapping services, upcoming renewals, and price hikes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

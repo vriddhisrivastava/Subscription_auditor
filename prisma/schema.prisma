@@ -1,0 +1,140 @@
+// Prisma schema for Subscription Auditor
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  BIANNUAL
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  PAUSED
+  CANCELLED
+}
+
+enum SubscriptionCategory {
+  STREAMING_VIDEO
+  STREAMING_MUSIC
+  PRODUCTIVITY_SOFTWARE
+  GAMING
+  FITNESS_HEALTH
+  CLOUD_STORAGE
+  NEWS_MEDIA
+  FOOD_DELIVERY
+  UTILITIES_SERVICES
+  EDUCATION
+  OTHER
+}
+
+enum AuditSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AuditType {
+  DUPLICATE_CATEGORY
+  UNUSED_SERVICE
+  PRICE_INCREASE
+  TRIAL_EXPIRING
+  EXPENSIVE_OUTLIER
+}
+
+enum RecommendationDecision {
+  KEEP
+  REVIEW
+  CANCEL
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  passwordHash  String?
+  currency      String         @default("USD")
+  reminderDays  Int            @default(3)
+  subscriptions Subscription[]
+  notifications Notification[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Subscription {
+  id              String               @id @default(cuid())
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  category        SubscriptionCategory @default(OTHER)
+  cost            Float
+  currency        String               @default("USD")
+  billingCycle    BillingCycle         @default(MONTHLY)
+  nextRenewalDate DateTime
+  paymentMethod   String               @default("Credit Card")
+  status          SubscriptionStatus   @default(ACTIVE)
+  lastUsedDate    DateTime?
+  trialEndsDate   DateTime?
+  previousCost    Float?
+  notes           String?
+  websiteUrl      String?
+  icon            String?
+  priceHistories  PriceHistory[]
+  auditFlags      AuditFlag[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([category])
+  @@index([nextRenewalDate])
+}
+
+model PriceHistory {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  oldCost        Float
+  newCost        Float
+  effectiveDate  DateTime     @default(now())
+  notes          String?
+
+  @@index([subscriptionId])
+}
+
+model AuditFlag {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  type           AuditType
+  severity       AuditSeverity
+  title          String
+  message        String
+  potentialSaving Float        @default(0)
+  isDismissed    Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  @@index([subscriptionId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("renewal")
+  isRead    Boolean  @default(false)
+  sentAt    DateTime @default(now())
+
+  @@index([userId])
+}
